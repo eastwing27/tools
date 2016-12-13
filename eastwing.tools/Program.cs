@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Eastwing.Tools.Parser;
+using System.IO;
+using System.Diagnostics;
 
 namespace Eastwing.Tools
 {
@@ -12,15 +14,28 @@ namespace Eastwing.Tools
         public static void Main(string[] args)
         {
             var parser = new Analyzer();
-            var str = Console.ReadLine();
+            var str = File.ReadAllText("test.txt");
 
-            var result = parser.Parse(str);
+            var s = new Stopwatch();
+            s.Start();
+
+            var p = new Analyzer()
+            {
+                Letters = "ФБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫБЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыбэюя",
+                Brackets = "",
+                Digits = ""
+            };
+
+            var result = str.Parse(p);
+
+            Console.WriteLine(s.Elapsed.TotalMilliseconds);
+            s.Reset();
 
             Console.WriteLine(result.Count());
-            foreach (var lexeme in result)
-            {
-                Console.WriteLine(lexeme.Full);
-            }
+            //foreach (var lexeme in result)
+            //{
+            //    Console.WriteLine(lexeme.Full);
+            //}
 
             Console.Read();
         }
