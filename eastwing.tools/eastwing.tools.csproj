@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{40962385-A202-406A-8EC7-199CD7762E5A}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Eastwing.Tools</RootNamespace>
     <AssemblyName>Eastwing.Tools</AssemblyName>
@@ -43,7 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Extenders.cs" />
+    <Compile Include="Parser\Extenders.cs" />
     <Compile Include="Parser\Category.cs" />
     <Compile Include="Parser\Analyzer.cs" />
     <Compile Include="Parser\Token.cs" />
