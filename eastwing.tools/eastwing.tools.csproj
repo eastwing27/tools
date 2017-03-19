@@ -43,10 +43,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Parser\Extenders.cs" />
-    <Compile Include="Parser\Category.cs" />
-    <Compile Include="Parser\Analyzer.cs" />
+    <Compile Include="Parser\ExtentionMethods.cs" />
+    <Compile Include="Parser\ParseMachine.cs" />
+    <Compile Include="Parser\States.cs" />
     <Compile Include="Parser\Token.cs" />
+    <Compile Include="Parser\TokenCategories.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

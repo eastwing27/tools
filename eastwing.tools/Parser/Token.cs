@@ -1,9 +1,11 @@
-﻿namespace Eastwing.Tools.Parser
+﻿using System.Text;
+
+namespace Eastwing.Tools.Parser
 {
-    public struct Token
+    public class Token
     {
         public string Lexeme;
-        public Category Category;
+        public TokenCategories Category;
 
         /// <summary>
         /// Вывод лексемы
@@ -17,24 +19,40 @@
         /// <returns></returns>
         public string Full => $"({Category}) {Lexeme}";
 
-        public Token(string Lexeme, Category Category)
+        public Token(string Lexeme, TokenCategories Category)
         {
             this.Lexeme = Lexeme;
             this.Category = Category;
         }
 
-        /// <summary>
-        /// Присваивает существующему экземпляру новые значения без необходимости создавать новый экхемпляр
-        /// </summary>
-        /// <param name="Lexeme"></param>
-        /// <param name="Category"></param>
-        /// <returns></returns>
-        public Token Reinit(string Lexeme, Category Category)
+        public Token(char Source, TokenCategories Category)
         {
-            this.Lexeme = Lexeme;
+            this.Lexeme = Source.ToString();
             this.Category = Category;
-
-            return this;
         }
+
+        public Token(StringBuilder Builder, TokenCategories Category)
+        {
+            this.Lexeme = Builder.ToString();
+            this.Category = Category;
+        }
+
+        ///// <summary>
+        ///// Присваивает существующему экземпляру новые значения без необходимости создавать новый экхемпляр
+        ///// </summary>
+        ///// <param name="Lexeme"></param>
+        ///// <param name="Category"></param>
+        ///// <returns></returns>
+        //public Token Reinit(string Lexeme, TokenCategories Category)
+        //{
+        //    this.Lexeme = Lexeme;
+        //    this.Category = Category;
+
+        //    return this;
+        //}
+        //public Token Reinit<T>(T Source, TokenCategories Category)
+        //{
+        //    return Reinit(Source.ToString(), Category);
+        //}
     }
 }
