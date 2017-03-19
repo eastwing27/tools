@@ -51,6 +51,8 @@
         /// Пробел или табуляция
         /// </summary>
         Space,
+        CommentLine,
+        CommentBlock,
         /// <summary>
         /// Неизвестный токен
         /// </summary>

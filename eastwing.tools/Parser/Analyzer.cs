@@ -6,7 +6,7 @@ namespace Eastwing.Tools.Parser
 {
     public class Analyzer
     {
-        public IEnumerable<string> Keywords { get; set; } = new List<string>().AsEnumerable();
+        public IEnumerable<string> Keywords { get; set; } = new string[0];
 
         public string Letters { get; set; } = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюяABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_";
         public string Digits { get; set; } = "0123456789";
@@ -14,8 +14,6 @@ namespace Eastwing.Tools.Parser
         public string Separators { get; set; } = "!@#$%^&?|`~№;:";
         public string Brackets { get; set; } = "()<>{}[]";
         public char RadixPoint { get; set; } = '.';
-
-        private static Category[] SetCategories = new Category[] { Category.String, Category.Integer, Category.Real, Category.Word, Category.Keyword};
 
         private Token OutToken(ref Token token, object lexContainer, Category cat)
         {
@@ -33,6 +31,10 @@ namespace Eastwing.Tools.Parser
             var curCat = new Category();
             var stringOpener = default(char);
 
+            var Comments = new[] { Category.CommentBlock, Category.CommentLine };
+            var SetCategories = new[] { Category.String, Category.Integer, Category.Real, Category.Word, Category.Keyword, Category.CommentBlock, Category.CommentLine };
+            //var Multichars = new[] { Category.Integer, Category.Real, Category.Word, Category.CommentBlock, Category.CommentLine };
+
 
             for (int i = 0; i < Text.Length; i++)
             {
@@ -42,31 +44,46 @@ namespace Eastwing.Tools.Parser
                     switch (Text[i])
                     {
                         case ' ': case '\t':
-                            yield return OutToken(ref cToken, sbLex, curCat);
-                            yield return cToken.Reinit(Text[i].ToString(), Category.Space);
-                            curCat = Category.Void;
-                            sbLex.Clear();
+                            if (!Comments.Contains(curCat))
+                            {
+                                yield return OutToken(ref cToken, sbLex, curCat);
+                                yield return cToken.Reinit(Text[i].ToString(), Category.Space);
+                                curCat = Category.Void;
+                                sbLex.Clear();
+                                break;
+                            }
+                            sbLex.Append(Text[i]);
                             break;
 
                         case '\n': case '\r':
-                            yield return OutToken(ref cToken, sbLex, curCat);
-                            curCat = Category.Void;
-                            sbLex.Clear();
+                            if (curCat != Category.CommentBlock)
+                            {
+                                yield return OutToken(ref cToken, sbLex, curCat);
+                                curCat = Category.Void;
+                                sbLex.Clear();
+                                break;
+                            }
+                            sbLex.Append(Text[i]);
                             break;
 
                         case char c when (Letters.Contains(c)):
-                            if (curCat != Category.Word)
+                            if (curCat != Category.Word && !Comments.Contains(curCat))
                                 curCat = Category.Word;
                             sbLex.Append(c);
                             break;
 
                         case char c when (Digits.Contains(c)):
-                            if (curCat != Category.Integer && curCat != Category.Real && curCat != Category.Word)
+                            if (!SetCategories.Contains(curCat))//curCat != Category.Integer && curCat != Category.Real && curCat != Category.Word)
                                 curCat = Category.Integer;
                             sbLex.Append(c);
                             break;
 
                         case char c when (c == RadixPoint):
+                            if (Comments.Contains(curCat))
+                            {
+                                sbLex.Append(c);
+                                break;
+                            }
                             if (i + 1 != Text.Length)
                             {
                                 if (curCat == Category.Integer)
@@ -97,6 +114,11 @@ namespace Eastwing.Tools.Parser
                             break;
 
                         case char c when (Quotes.Contains(c)):
+                            if (Comments.Contains(curCat))
+                            {
+                                sbLex.Append(c);
+                                break;
+                            }
                             if (curCat != Category.String)
                             {
                                 stringOpener = c;
@@ -118,6 +140,11 @@ namespace Eastwing.Tools.Parser
                             break;
 
                         case char c when (Separators.Contains(c)):
+                            if (Comments.Contains(curCat))
+                            {
+                                sbLex.Append(c);
+                                break;
+                            }
                             if (curCat != Category.Void)
                                 yield return OutToken(ref cToken, sbLex, curCat);
                             yield return OutToken(ref cToken, Text[i], Category.Separator);
@@ -126,6 +153,11 @@ namespace Eastwing.Tools.Parser
                             break;
 
                         case char c when (Brackets.Contains(c)):
+                            if (Comments.Contains(curCat))
+                            {
+                                sbLex.Append(c);
+                                break;
+                            }
                             if (curCat != Category.Void)
                                 yield return OutToken(ref cToken, sbLex, curCat);
                             yield return OutToken(ref cToken, Text[i], Category.Bracket);
@@ -134,6 +166,11 @@ namespace Eastwing.Tools.Parser
                             break;
 
                         case '=':
+                            if (Comments.Contains(curCat))
+                            {
+                                sbLex.Append(Text[i]);
+                                break;
+                            }
                             if (curCat != Category.Void)
                                 yield return OutToken(ref cToken, sbLex, curCat);
                             yield return OutToken(ref cToken, Text[i], Category.Equals);
@@ -142,22 +179,69 @@ namespace Eastwing.Tools.Parser
                             break;
 
                         case '+':
+                            if (Comments.Contains(curCat))
+                            {
+                                sbLex.Append(Text[i]);
+                                break;
+                            }
                             if (curCat != Category.Void)
                                 yield return OutToken(ref cToken, sbLex, curCat);
-                            yield return OutToken(ref cToken, Text[i], Category.Asterisk);
+                            yield return OutToken(ref cToken, Text[i], Category.Plus);
                             curCat = Category.Void;
                             sbLex.Clear();
                             break;
 
+                        case '*':
+                            switch (curCat)
+                            {
+                                case Category.CommentLine:
+                                    sbLex.Append(Text[i]);
+                                    break;
+
+                                case Category.CommentBlock:
+                                    if (Text.Length > i+1 && Text[i + 1] == '/')
+                                    {
+                                        yield return OutToken(ref cToken, Text[i], Category.Asterisk);
+                                        curCat = Category.Void;
+                                        sbLex.Clear();
+                                        break;
+                                    }
+                                    sbLex.Append(Text[i]);
+                                    break;
+                                  
+
+                                default:
+                                    if (i > 0 && Text[i-1] == '/')
+                                    {
+                                        yield return OutToken(ref cToken, Text[i], Category.Asterisk);
+                                        curCat = Category.CommentBlock;
+                                        //sbLex.Clear();
+                                        break;
+                                    }
+                                    if (curCat != Category.Void)
+                                        yield return OutToken(ref cToken, sbLex, curCat);
+                                    yield return OutToken(ref cToken, Text[i], Category.Asterisk);
+                                    curCat = Category.Void;
+                                    sbLex.Clear();
+                                    break;
+                            }
+                            break;
+
                         case '/':
+
                             if (curCat != Category.Void)
                                 yield return OutToken(ref cToken, sbLex, curCat);
                             yield return OutToken(ref cToken, Text[i], Category.Slash);
-                            curCat = Category.Void;
+                            curCat = (i > 0 && Text[i - 1] == '/') ? Category.CommentLine : Category.Void;
                             sbLex.Clear();
                             break;
 
                         case '\\':
+                            if (Comments.Contains(curCat))
+                            {
+                                sbLex.Append(Text[i]);
+                                break;
+                            }
                             if (curCat != Category.Void)
                                 yield return OutToken(ref cToken, sbLex, curCat);
                             yield return OutToken(ref cToken, Text[i], Category.Backslash);
@@ -166,6 +250,11 @@ namespace Eastwing.Tools.Parser
                             break;
 
                         default:
+                            if (Comments.Contains(curCat))
+                            {
+                                sbLex.Append(Text[i]);
+                                break;
+                            }
                             if (curCat != Category.Void)
                                 yield return OutToken(ref cToken, sbLex, curCat);
                             yield return OutToken(ref cToken, Text[i], Category.Unknown);
