@@ -37,22 +37,22 @@ namespace Eastwing.Tools.Parser
             this.Category = Category;
         }
 
-        ///// <summary>
-        ///// Присваивает существующему экземпляру новые значения без необходимости создавать новый экхемпляр
-        ///// </summary>
-        ///// <param name="Lexeme"></param>
-        ///// <param name="Category"></param>
-        ///// <returns></returns>
-        //public Token Reinit(string Lexeme, TokenCategories Category)
-        //{
-        //    this.Lexeme = Lexeme;
-        //    this.Category = Category;
+        /// <summary>
+        /// Присваивает существующему экземпляру новые значения без необходимости создавать новый экхемпляр
+        /// </summary>
+        /// <param name="Lexeme"></param>
+        /// <param name="Category"></param>
+        /// <returns></returns>
+        public Token Reinit(string Lexeme, TokenCategories Category)
+        {
+            this.Lexeme = Lexeme;
+            this.Category = Category;
 
-        //    return this;
-        //}
-        //public Token Reinit<T>(T Source, TokenCategories Category)
-        //{
-        //    return Reinit(Source.ToString(), Category);
-        //}
+            return this;
+        }
+        public Token Reinit<T>(T Source, TokenCategories Category)
+        {
+            return Reinit(Source.ToString(), Category);
+        }
     }
 }

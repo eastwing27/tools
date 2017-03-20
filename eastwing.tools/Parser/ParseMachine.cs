@@ -30,12 +30,14 @@ namespace Eastwing.Tools.Parser
             var openingQuote = default(char);
             var builder = new StringBuilder();
             var newLine = Environment.NewLine;
+            var category = default(TokenCategories);
+            var worker = new Token("", TokenCategories.Unknown);
 
-            void pushLexeme()
-            {
-                result[result.Count-1].Lexeme = builder.ToString();
-                builder.Clear();
-            }
+            //void pushLexeme()
+            //{
+            //    result[result.Count-1].Lexeme = builder.ToString();
+            //    builder.Clear();
+            //}
 
             //Working
             State = States.Adding;
@@ -51,82 +53,82 @@ namespace Eastwing.Tools.Parser
                         switch (chr)
                         {
                             case char c when (Letters.Contains(c)):
-                                result.Add(new Token("", TokenCategories.Word));
+                                category = TokenCategories.Word;
                                 State = States.BuildingWord;
                                 builder.Append(c);
                                 break;
 
                             case char c when (c == ' ' || c == '\t'):
-                                result.Add(new Token(c, TokenCategories.Space));
+                                yield return (worker.Reinit(c, TokenCategories.Space));
                                 break;
 
                             case char c when (Digits.Contains(c)):
-                                result.Add(new Token("", TokenCategories.Integer));
+                                category = TokenCategories.Integer;
                                 State = States.BuildingNumber;
                                 builder.Append(c);
                                 break;
 
                             case char c when (Separators.Contains(c)):
-                                result.Add(new Token(c, TokenCategories.Separator));
+                                yield return (worker.Reinit(c, TokenCategories.Separator));
                                 break;
 
                             case char c when (Brackets.Contains(c)):
-                                result.Add(new Token(c, TokenCategories.Bracket));
+                                yield return (worker.Reinit(c, TokenCategories.Bracket));
                                 break;
 
                             case char c when (Quotes.Contains(c)):
-                                result.Add(new Token(c, TokenCategories.Quote));
+                                yield return (worker.Reinit(c, TokenCategories.Quote));
                                 openingQuote = c;
-                                result.Add(new Token("", TokenCategories.String));
+                                category = TokenCategories.String;
                                 State = States.BuildingLine;
                                 break;
 
                             case char c when (c == RadixPoint):
                                 if (i < Text.Length && Digits.Contains(Text[i + 1]))
                                 {
-                                    result.Add(new Token("", TokenCategories.Real));
+                                    category = TokenCategories.Real;
                                     State = States.BuildingNumber;
                                     builder.Append(c);
                                     break;
                                 }
-                                result.Add(new Token(c, TokenCategories.Separator));
+                                yield return (worker.Reinit(c, TokenCategories.Separator));
                                 break;
 
                             case char c when (c == '\n' || c == '\r'):
                                 break;
 
                             case '-':
-                                result.Add(new Token("-", TokenCategories.Minus));
+                                yield return (worker.Reinit("-", TokenCategories.Minus));
                                 break;
 
                             case '+':
-                                result.Add(new Token("+", TokenCategories.Plus));
+                                yield return (worker.Reinit("+", TokenCategories.Plus));
                                 break;
 
                             case '*':
-                                result.Add(new Token("*", TokenCategories.Asterisk));
+                                yield return (worker.Reinit("*", TokenCategories.Asterisk));
                                 if (i > 0 && Text[i - 1] == '/')
                                 {
-                                    result.Add(new Token("", TokenCategories.Comment));
+                                    category = TokenCategories.Comment;
                                     State = States.BuildingLines;
                                 }
                                 break;
 
                             case '/':
-                                result.Add(new Token("/", TokenCategories.Slash));
+                                yield return (worker.Reinit("/", TokenCategories.Slash));
                                 if (i > 0 && Text[i - 1] == '/')
                                 {
-                                    result.Add(new Token("", TokenCategories.Comment));
+                                    category = TokenCategories.Comment;
                                     State = States.BuildingLine;
                                 }
                                 break;
 
                             case '\\':
-                                result.Add(new Token("\\", TokenCategories.Backslash));
+                                yield return (worker.Reinit("\\", TokenCategories.Backslash));
                                 break;
 
                             default:
-                                result.Add(new Token(chr, TokenCategories.Unknown));
+                                yield return (worker.Reinit(chr, TokenCategories.Unknown));
                                 break;
                         }
                         #endregion
@@ -140,8 +142,9 @@ namespace Eastwing.Tools.Parser
                             case char c when (newLine.Contains(c)):
                                 if (i > 0 && !newLine.Contains(Text[i - 1]))
                                 {
-                                    pushLexeme();
-                                    result.Add(new Token("", result[result.Count - 1].Category));
+                                    yield return worker.Reinit(builder,category);
+                                    builder.Clear();
+                                    //result.Add(new Token("", result[result.Count - 1].Category));
                                 }
                                 break;
 
@@ -149,9 +152,10 @@ namespace Eastwing.Tools.Parser
                                 var last = Text.Length - 1;
                                 if (i < last && Text[i + 1] == '/')
                                 {
-                                    pushLexeme();
+                                    yield return worker.Reinit(builder, category);
+                                    yield return(worker.Reinit("*", TokenCategories.Asterisk));
+                                    builder.Clear();
                                     State = States.Adding;
-                                    result.Add(new Token("*", TokenCategories.Asterisk));
                                     break;
                                 }
                                 builder.Append('*');
@@ -169,16 +173,18 @@ namespace Eastwing.Tools.Parser
                         switch (chr)
                         {
                             case char c when (newLine.Contains(c)):
-                                pushLexeme();
+                                yield return worker.Reinit(builder, category);
+                                builder.Clear();
                                 State = States.Adding;
                                 break;
 
                             case char c when (Quotes.Contains(c)):
-                                if (result[result.Count - 1].Category == TokenCategories.String && c == openingQuote)
+                                if (category == TokenCategories.String && c == openingQuote)
                                 {
-                                    pushLexeme();
+                                    yield return worker.Reinit(builder, category);
+                                    yield return worker.Reinit(c, TokenCategories.Quote);
+                                    builder.Clear();
                                     State = States.Adding;
-                                    result.Add(new Token(c, TokenCategories.Quote));
                                     break;
                                 }
                                 builder.Append(c);
@@ -201,18 +207,19 @@ namespace Eastwing.Tools.Parser
 
                             case char c when (Letters.Contains(c)):
                                 builder.Append(c);
-                                result[result.Count - 1].Category = TokenCategories.Word;
+                                category = TokenCategories.Word;
                                 break;
 
                             case char c when (c == RadixPoint):
                                 builder.Append(c);
-                                result[result.Count - 1].Category = TokenCategories.Real;
+                                category = TokenCategories.Real;
                                 break;
 
                             default:
-                                pushLexeme();
+                                yield return worker.Reinit(builder, category);
+                                yield return (GetToken(chr));
+                                builder.Clear();
                                 State = States.Adding;
-                                result.Add(GetToken(chr));
                                 break;
                         }
                         #endregion
@@ -227,14 +234,16 @@ namespace Eastwing.Tools.Parser
                                 break;
 
                             case char c when (Environment.NewLine.Contains(c)):
-                                pushLexeme();
+                                yield return worker.Reinit(builder, category);
+                                builder.Clear();
                                 State = States.Adding;
                                 break;
 
                             default:
-                                pushLexeme();
+                                yield return worker.Reinit(builder, category);
+                                yield return (GetToken(chr));
+                                builder.Clear();
                                 State = States.Adding;
-                                result.Add(GetToken(chr));
                                 break;
                         }
                         #endregion
@@ -244,7 +253,6 @@ namespace Eastwing.Tools.Parser
             State = States.Ending;
             //Some final operations
             State = States.Done;
-            return result.AsEnumerable();
         }
 
         public Token GetToken(char Source)
