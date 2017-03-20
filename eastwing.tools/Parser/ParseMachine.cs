@@ -215,6 +215,12 @@ namespace Eastwing.Tools.Parser
                                 category = TokenCategories.Real;
                                 break;
 
+                            case char c when (Environment.NewLine.Contains(c)):
+                                yield return worker.Reinit(builder, category);
+                                builder.Clear();
+                                State = States.Adding;
+                                break;
+
                             default:
                                 yield return worker.Reinit(builder, category);
                                 yield return (GetToken(chr));
@@ -234,12 +240,16 @@ namespace Eastwing.Tools.Parser
                                 break;
 
                             case char c when (Environment.NewLine.Contains(c)):
+                                if (Keywords.Contains(builder.ToString()))
+                                    category = TokenCategories.Keyword;
                                 yield return worker.Reinit(builder, category);
                                 builder.Clear();
                                 State = States.Adding;
                                 break;
 
                             default:
+                                if (Keywords.Contains(builder.ToString()))
+                                    category = TokenCategories.Keyword;
                                 yield return worker.Reinit(builder, category);
                                 yield return (GetToken(chr));
                                 builder.Clear();
