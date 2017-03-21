@@ -21,6 +21,14 @@ namespace Eastwing.Tools.Parser
         public string Brackets { get; set; } = "()<>{}[]";
         public char RadixPoint { get; set; } = '.';
 
+        public static ParseMachine Fast => new ParseMachine()
+        {
+            Letters = "",
+            Digits = "",
+            Separators = "!?,.:;",
+            Brackets = "()"
+        };
+
         public IEnumerable<Token> Parse(string Text)
         {
             State = States.Starting;
@@ -105,6 +113,10 @@ namespace Eastwing.Tools.Parser
                                 yield return (worker.Reinit("+", TokenCategories.Plus));
                                 break;
 
+                            case '=':
+                                yield return (worker.Reinit("=", TokenCategories.Equals));
+                                break;
+
                             case '*':
                                 yield return (worker.Reinit("*", TokenCategories.Asterisk));
                                 if (i > 0 && Text[i - 1] == '/')
@@ -128,7 +140,10 @@ namespace Eastwing.Tools.Parser
                                 break;
 
                             default:
-                                yield return (worker.Reinit(chr, TokenCategories.Unknown));
+                                //yield return (worker.Reinit(chr, TokenCategories.Unknown));
+                                category = TokenCategories.Unknown;
+                                State = States.BuildingUnknown;
+                                builder.Append(chr);
                                 break;
                         }
                         #endregion
@@ -258,10 +273,38 @@ namespace Eastwing.Tools.Parser
                         }
                         #endregion
                         break;
+
+                    case States.BuildingUnknown:
+                        switch (chr)
+                        {
+                            case char c when (Separators.Contains(c) ||
+                                              Brackets.Contains(c)   ||
+                                              Quotes.Contains(c)     ||
+                                              c == RadixPoint        ||
+                                              c == ' ' || c == '\t'):
+                                if (Keywords.Contains(builder.ToString()))
+                                    category = TokenCategories.Keyword;
+                                yield return worker.Reinit(builder, category);
+                                yield return GetToken(c);
+                                builder.Clear();
+                                State = States.Adding;
+                                break;
+
+                            case char c when (newLine.Contains(c)):
+                                if (Keywords.Contains(builder.ToString()))
+                                    category = TokenCategories.Keyword;
+                                yield return worker.Reinit(builder, category);
+                                builder.Clear();
+                                State = States.Adding;
+                                break;
+
+                            default:
+                                builder.Append(chr);
+                                break;
+                        }
+                        break;
                 }
             }
-            State = States.Ending;
-            //Some final operations
             State = States.Done;
         }
 
@@ -286,6 +329,9 @@ namespace Eastwing.Tools.Parser
 
                 case char c when (c == ' ' || c == '\t'):
                     return new Token(c, TokenCategories.Space);
+
+                case '=':
+                    return new Token("=", TokenCategories.Equals);
 
                 case '+':
                     return new Token("+", TokenCategories.Plus);

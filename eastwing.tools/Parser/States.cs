@@ -9,7 +9,7 @@
         BuildingWord,
         BuildingLine,
         BuildingLines,
-        Ending,
+        BuildingUnknown,
         Done
     }
 }

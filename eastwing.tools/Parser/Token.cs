@@ -17,7 +17,7 @@ namespace Eastwing.Tools.Parser
         /// Вывод обоих полей в формате "(Категория) Лексема"
         /// </summary>
         /// <returns></returns>
-        public string Full => $"({Category}) {Lexeme}";
+        public string Full => $"{Category, 10} | {Lexeme}";
 
         public Token(string Lexeme, TokenCategories Category)
         {
