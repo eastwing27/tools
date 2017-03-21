@@ -2,7 +2,7 @@
 
 namespace Eastwing.Tools.Parser
 {
-    public class Token
+    public struct Token
     {
         public string Lexeme;
         public TokenCategories Category;
